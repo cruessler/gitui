@@ -27,6 +27,7 @@ use ratatui::{
 	widgets::{Block, Borders, Cell, Clear, Row, Table, TableState},
 	Frame,
 };
+use std::sync::{Arc, RwLock};
 
 use super::{BlameFileOpen, InspectCommitOpen};
 
@@ -101,7 +102,8 @@ impl FileRevlogPopup {
 	pub fn open(&mut self, open_request: FileRevOpen) -> Result<()> {
 		self.open_request = Some(open_request.clone());
 
-		let filter = diff_contains_file(open_request.file_path);
+		let file_name = Arc::new(RwLock::new(open_request.file_path));
+		let filter = diff_contains_file(file_name);
 		self.git_log = Some(AsyncLog::new(
 			self.repo_path.borrow().clone(),
 			&self.sender,
