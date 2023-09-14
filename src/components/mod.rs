@@ -8,7 +8,8 @@ mod revision_files;
 mod status_tree;
 mod syntax_text;
 mod textinput;
-mod utils;
+
+pub mod utils;
 
 pub use self::status_tree::StatusTreeComponent;
 pub use changes::ChangesComponent;
@@ -21,9 +22,8 @@ pub use revision_files::RevisionFilesComponent;
 pub use syntax_text::SyntaxTextComponent;
 pub use textinput::{InputType, TextInputComponent};
 pub use utils::{
-	filetree::FileTreeItemKind, logitems::ItemBatch,
-	scroll_vertical::VerticalScroll, string_width_align,
-	time_to_string,
+	filetree::FileTreeItemKind, scroll_vertical::VerticalScroll,
+	string_width_align, time_to_string,
 };
 
 use crate::ui::style::Theme;

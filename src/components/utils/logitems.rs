@@ -1,5 +1,5 @@
 use asyncgit::sync::{CommitId, CommitInfo};
-use chrono::{DateTime, Duration, Local, Utc};
+use chrono::{DateTime, Duration, Local, NaiveDateTime, Utc};
 use indexmap::IndexSet;
 use std::{rc::Rc, slice::Iter};
 
@@ -26,19 +26,11 @@ impl From<CommitInfo> for LogEntry {
 	fn from(c: CommitInfo) -> Self {
 		let hash_short = c.id.get_short_string().into();
 
-		let time = {
-			let date = DateTime::from_timestamp(c.time, 0)
-				.map(|d| d.naive_utc());
-			if date.is_none() {
-				log::error!("error reading commit date: {hash_short} - timestamp: {}",c.time);
-			}
-			DateTime::<Local>::from(
-				DateTime::<Utc>::from_naive_utc_and_offset(
-					date.unwrap_or_default(),
-					Utc,
-				),
-			)
-		};
+		let time = Self::timestamp_to_datetime(c.time);
+		if time.is_none() {
+			log::error!("error reading commit date: {hash_short} - timestamp: {}",c.time);
+		}
+		let time = time.unwrap_or_default();
 
 		let author = c.author;
 		#[allow(unused_mut)]
@@ -61,20 +53,36 @@ impl From<CommitInfo> for LogEntry {
 
 impl LogEntry {
 	pub fn time_to_string(&self, now: DateTime<Local>) -> String {
-		let delta = now - self.time;
-		if delta < Duration::try_minutes(30).unwrap_or_default() {
-			let delta_str = if delta
-				< Duration::try_minutes(1).unwrap_or_default()
-			{
+		Self::time_as_string(self.time, now)
+	}
+
+	pub fn timestamp_to_datetime(
+		time: i64,
+	) -> Option<DateTime<Local>> {
+		let date = NaiveDateTime::from_timestamp_opt(time, 0)?;
+
+		Some(DateTime::<Local>::from(
+			DateTime::<Utc>::from_naive_utc_and_offset(date, Utc),
+		))
+	}
+
+	///
+	pub fn time_as_string(
+		time: DateTime<Local>,
+		now: DateTime<Local>,
+	) -> String {
+		let delta = now - time;
+		if delta < Duration::minutes(30) {
+			let delta_str = if delta < Duration::minutes(1) {
 				"<1m ago".to_string()
 			} else {
 				format!("{:0>2}m ago", delta.num_minutes())
 			};
 			format!("{delta_str: <10}")
-		} else if self.time.date_naive() == now.date_naive() {
-			self.time.format("%T  ").to_string()
+		} else if time.date_naive() == now.date_naive() {
+			time.format("%T  ").to_string()
 		} else {
-			self.time.format("%Y-%m-%d").to_string()
+			time.format("%Y-%m-%d").to_string()
 		}
 	}
 }
